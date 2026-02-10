@@ -3,266 +3,303 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>TOUCH ENGINE PRO</title>
+    <title>VIP TOUCH OPTIMIZER</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;900&family=Kanit:wght@200;400;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,300;0,700;1,900&family=Orbitron:wght@400;900&display=swap');
 
         :root {
-            --accent: #00ffaa;
-            --accent-glow: rgba(0, 255, 170, 0.4);
-            --bg: #030303;
-        }
-
-        * {
-            -webkit-tap-highlight-color: transparent;
-            user-select: none;
-            font-family: 'Inter', 'Kanit', sans-serif;
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+            --vip-gold: #ffcc00;
+            --bg-deep: #050505;
         }
 
         body {
-            background-color: var(--bg);
-            color: #ffffff;
+            background-color: var(--bg-deep);
+            color: #fff;
+            font-family: 'Kanit', sans-serif;
+            overflow: hidden;
             height: 100vh;
             width: 100vw;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: space-between;
-            padding: 40px 24px;
+            touch-action: none; /* ตัดระบบ Delay ของ Browser */
         }
 
-        /* Abstract Background Elements */
-        .bg-glow {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 300px;
-            height: 300px;
-            background: var(--accent);
-            filter: blur(120px);
-            opacity: 0.05;
-            z-index: -1;
-            transition: opacity 0.8s ease;
-        }
+        .orbitron { font-family: 'Orbitron', sans-serif; }
 
-        .active .bg-glow {
-            opacity: 0.15;
-            width: 400px;
-        }
-
-        /* Minimal Header */
-        .header-badge {
-            background: rgba(255, 50, 50, 0.1);
-            border: 1px solid rgba(255, 50, 50, 0.2);
-            padding: 6px 16px;
-            border-radius: 100px;
-            font-size: 12px;
-            font-weight: 700;
-            color: #ff4444;
-            letter-spacing: 1px;
-        }
-
-        /* Master Switch Design */
-        .switch-outer {
-            width: 280px;
-            height: 120px;
+        .glass-card {
             background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 60px;
+            border-radius: 24px;
+        }
+
+        /* ปุ่มสวิตช์กลางหน้าจอ */
+        .main-switch-container {
+            width: 280px;
+            height: 140px;
+            background: #111;
+            border-radius: 70px;
+            border: 4px solid #222;
             position: relative;
             cursor: pointer;
-            transition: all 0.5s cubic-bezier(0.2, 1, 0.3, 1);
-            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: inset 0 0 30px rgba(0,0,0,0.8);
         }
 
-        .switch-handle {
+        .main-knob {
             position: absolute;
             top: 10px;
             left: 10px;
-            width: 100px;
-            height: 100px;
-            background: #ffffff;
+            width: 112px;
+            height: 112px;
+            background: #333;
             border-radius: 50%;
-            transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #000;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
         }
 
-        .active .switch-outer {
-            background: rgba(0, 255, 170, 0.05);
-            border-color: var(--accent);
-            box-shadow: 0 0 50px var(--accent-glow);
+        .active .main-switch-container {
+            background: rgba(255, 204, 0, 0.1);
+            border-color: var(--vip-gold);
+            box-shadow: 0 0 50px rgba(255, 204, 0, 0.2);
         }
 
-        .active .switch-handle {
-            left: 170px;
-            background: var(--accent);
-            box-shadow: 0 0 30px var(--accent);
+        .active .main-knob {
+            left: 150px;
+            background: var(--vip-gold);
+            box-shadow: 0 0 40px rgba(255, 204, 0, 0.8);
         }
 
-        /* Status Panels */
-        .panel {
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            border-radius: 24px;
-            padding: 20px;
+        /* ส่วนเลื่อนได้ด้านล่าง */
+        .scroller {
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            display: flex;
+            gap: 16px;
             width: 100%;
-            max-width: 400px;
+            padding: 10px 0;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .scroller::-webkit-scrollbar { display: none; }
+        
+        .scroll-item {
+            min-width: 85%;
+            scroll-snap-align: center;
         }
 
-        .status-dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: #444;
+        /* ดีไซน์สวิตช์ย่อย */
+        .sub-switch {
+            width: 50px;
+            height: 26px;
+            background: #333;
+            border-radius: 13px;
+            position: relative;
             transition: 0.3s;
         }
-
-        .active .status-dot {
-            background: var(--accent);
-            box-shadow: 0 0 10px var(--accent);
+        .sub-knob {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 20px;
+            height: 20px;
+            background: #fff;
+            border-radius: 50%;
+            transition: 0.3s;
         }
+        .sub-active { background: #4ade80; }
+        .sub-active .sub-knob { left: 27px; }
 
-        /* Animations */
-        @keyframes pulse {
-            0% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.1); opacity: 0.5; }
-            100% { transform: scale(1); opacity: 1; }
+        @keyframes scan {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(100vh); }
         }
-
-        .indicator-active {
-            animation: pulse 2s infinite;
+        .scan-line {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 2px;
+            background: var(--vip-gold);
+            opacity: 0.2;
+            z-index: 100;
+            pointer-events: none;
+            display: none;
         }
     </style>
 </head>
-<body id="mainBody">
-    <div class="bg-glow"></div>
+<body class="flex flex-col items-center justify-between py-10">
+
+    <div id="scanLine" class="scan-line"></div>
 
     <!-- Header -->
-    <div class="flex flex-col items-center gap-3">
-        <div class="header-badge">ขาย 35 บาท</div>
-        <div class="text-[10px] tracking-[0.5em] text-white/30 font-light">CORE ENGINE v4.2</div>
+    <div class="text-center">
+        <div class="orbitron text-3xl font-black tracking-widest text-white/20">VIP</div>
+        <div class="text-[10px] tracking-[0.5em] text-yellow-500 font-bold uppercase mt-1">Touch Sensitivity Engine</div>
     </div>
 
-    <!-- Center Module -->
-    <div class="flex flex-col items-center gap-12 w-full">
+    <!-- Main Module -->
+    <div id="mainModule" class="flex flex-col items-center gap-12">
         <div class="text-center">
-            <h1 id="title" class="text-5xl font-black italic tracking-tighter mb-2 transition-all duration-700">ดูดหัว 70%</h1>
-            <p id="desc" class="text-xs font-light text-white/40 tracking-[0.2em] uppercase">เว็บดูหัว VIP</p>
+            <h1 id="aimText" class="text-6xl font-black italic tracking-tighter transition-all duration-500">AIMBOT 80%</h1>
+            <p id="statusMsg" class="text-xs font-mono text-gray-500 tracking-widest mt-2 uppercase">System Status: Idle</p>
         </div>
 
-        <div class="switch-outer" onclick="toggleEngine()">
-            <div class="switch-handle">
-                <svg id="icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <div class="main-switch-container" onclick="toggleActivation()">
+            <div class="main-knob">
+                <svg id="powerIcon" width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2">
                     <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
                 </svg>
             </div>
         </div>
 
-        <div id="statusTag" class="opacity-0 translate-y-4 transition-all duration-700">
-            <div class="flex items-center gap-3">
-                <div class="status-dot indicator-active"></div>
-                <span class="text-xs font-bold tracking-[0.3em] text-[#00ffaa]">เปิดใช้งานแล้ว</span>
+        <div id="openedLabel" class="opacity-0 transform translate-y-4 transition-all duration-500">
+            <div class="px-10 py-3 rounded-full border border-yellow-500/30 bg-yellow-500/10">
+                <span class="text-yellow-500 font-bold text-xl tracking-widest">เปิดแล้ว</span>
             </div>
         </div>
     </div>
 
-    <!-- Bottom Dashboard -->
-    <div class="panel flex flex-col gap-6">
-        <div class="flex justify-between items-center px-2">
-            <div class="flex flex-col">
-                <span class="text-[9px] text-white/30 font-bold uppercase">กันแบน / กันดำ</span>
-                <span class="text-xs font-medium">SECURITY BYPASS</span>
+    <!-- Bottom Scroller -->
+    <div class="w-full px-6">
+        <div class="scroller">
+            <!-- Slide 1: Security -->
+            <div class="scroll-item">
+                <div class="glass-card p-5 h-full">
+                    <div class="text-xs font-bold text-gray-500 mb-4 uppercase tracking-widest">Security Settings</div>
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm font-bold">กันดำ</span>
+                            <div class="sub-switch" onclick="this.classList.toggle('sub-active')"><div class="sub-knob"></div></div>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm font-bold">กันแบน</span>
+                            <div class="sub-switch" onclick="this.classList.toggle('sub-active')"><div class="sub-knob"></div></div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="flex gap-2">
-                <div id="subBtn1" onclick="this.classList.toggle('bg-[#00ffaa]'); this.classList.toggle('text-black')" class="w-10 h-6 rounded-full border border-white/10 flex items-center justify-center text-[8px] transition-all">ON</div>
-                <div id="subBtn2" onclick="this.classList.toggle('bg-[#00ffaa]'); this.classList.toggle('text-black')" class="w-10 h-6 rounded-full border border-white/10 flex items-center justify-center text-[8px] transition-all">ON</div>
+
+            <!-- Slide 2: Device Stats -->
+            <div class="scroll-item">
+                <div class="glass-card p-5 h-full">
+                    <div class="text-xs font-bold text-gray-500 mb-2 uppercase tracking-widest">Device Analysis</div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <div class="text-[9px] text-gray-400">รุ่นอุปกรณ์</div>
+                            <div id="deviceModel" class="text-sm font-bold truncate">กำลังดึงข้อมูล...</div>
+                        </div>
+                        <div>
+                            <div class="text-[9px] text-gray-400">Browser</div>
+                            <div id="browserInfo" class="text-sm font-bold truncate">กำลังดึงข้อมูล...</div>
+                        </div>
+                        <div>
+                            <div class="text-[9px] text-gray-400">Response</div>
+                            <div id="respTime" class="text-sm font-bold text-yellow-500">12.4ms</div>
+                        </div>
+                        <div>
+                            <div class="text-[9px] text-gray-400">Refresh Rate</div>
+                            <div id="hzRate" class="text-sm font-bold">60Hz</div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-
-        <div class="h-[1px] bg-white/5 w-full"></div>
-
-        <div class="grid grid-cols-2 gap-4">
-            <div class="flex flex-col">
-                <span class="text-[9px] text-white/20 uppercase">สถานะทัชสกรีน</span>
-                <span id="stat1" class="text-sm font-bold text-white/60">ปกติ (60Hz)</span>
-            </div>
-            <div class="flex flex-col">
-                <span class="text-[9px] text-white/20 uppercase">ความเร็วการตอบสนอง</span>
-                <span id="stat2" class="text-sm font-bold text-white/60">14.2ms</span>
-            </div>
+        
+        <!-- Indicator dots -->
+        <div class="flex justify-center gap-2 mt-4">
+            <div class="w-1.5 h-1.5 rounded-full bg-yellow-500"></div>
+            <div class="w-1.5 h-1.5 rounded-full bg-white/20"></div>
         </div>
     </div>
 
     <script>
         let isActive = false;
 
-        function toggleEngine() {
+        // ดึงข้อมูลอุปกรณ์เบื้องต้น
+        function fetchDeviceInfo() {
+            const userAgent = navigator.userAgent;
+            const modelEl = document.getElementById('deviceModel');
+            const browserEl = document.getElementById('browserInfo');
+
+            // แบบจำลองการดึงชื่อรุ่น (ใน Browser จริงจะเห็นได้จำกัด)
+            if (userAgent.match(/iPhone/i)) modelEl.innerText = "iPhone Mobile";
+            else if (userAgent.match(/iPad/i)) modelEl.innerText = "iPad OS";
+            else if (userAgent.match(/Android/i)) {
+                const match = userAgent.match(/Android\s+([^\s;]+|.*?\s+(.*?)\s+Build)/);
+                modelEl.innerText = "Android Device";
+            } else {
+                modelEl.innerText = "PC Desktop";
+            }
+
+            browserEl.innerText = navigator.appName || "Web Browser";
+        }
+
+        function toggleActivation() {
             isActive = !isActive;
-            const body = document.getElementById('mainBody');
-            const title = document.getElementById('title');
-            const desc = document.getElementById('desc');
-            const tag = document.getElementById('statusTag');
-            const stat1 = document.getElementById('stat1');
-            const stat2 = document.getElementById('stat2');
-            const icon = document.getElementById('icon');
+            const body = document.body;
+            const mainModule = document.getElementById('mainModule');
+            const aimText = document.getElementById('aimText');
+            const statusMsg = document.getElementById('statusMsg');
+            const label = document.getElementById('openedLabel');
+            const icon = document.getElementById('powerIcon');
+            const resp = document.getElementById('respTime');
+            const scan = document.getElementById('scanLine');
+            const hz = document.getElementById('hzRate');
 
             if (isActive) {
                 body.classList.add('active');
-                title.style.color = '#00ffaa';
-                title.style.textShadow = '0 0 30px rgba(0, 255, 170, 0.4)';
-                desc.innerText = 'OPTIMIZATION ACTIVE';
-                desc.style.color = '#00ffaa';
-                tag.classList.remove('opacity-0', 'translate-y-4');
-                
-                stat1.innerText = 'ULTRA (1000Hz)';
-                stat1.style.color = '#00ffaa';
-                stat2.innerText = '0.01ms';
-                stat2.style.color = '#00ffaa';
-                
-                icon.style.fill = "currentColor";
+                aimText.style.color = "#ffcc00";
+                aimText.style.textShadow = "0 0 30px rgba(255, 204, 0, 0.6)";
+                statusMsg.innerText = "System Status: Ultra High Speed";
+                statusMsg.style.color = "#ffcc00";
+                label.classList.remove('opacity-0', 'translate-y-4');
+                icon.setAttribute('stroke', '#000');
+                icon.setAttribute('fill', '#000');
+                resp.innerText = "0.001ms";
+                resp.style.color = "#4ade80";
+                hz.innerText = "120Hz+";
+                scan.style.display = "block";
+                scan.style.animation = "scan 2s linear infinite";
 
-                // Vibrate for physical feedback
-                if (navigator.vibrate) navigator.vibrate([15, 30, 15]);
+                // Haptic feedback
+                if (navigator.vibrate) navigator.vibrate([20, 40, 20]);
 
-                // Optimize Touch via CSS
-                document.documentElement.style.setProperty('touch-action', 'none');
+                // Performance Optimization Loop
+                optimizeTouch();
             } else {
                 body.classList.remove('active');
-                title.style.color = '#ffffff';
-                title.style.textShadow = 'none';
-                desc.innerText = 'เว็บดูหัว VIP';
-                desc.style.color = 'rgba(255,255,255,0.4)';
-                tag.classList.add('opacity-0', 'translate-y-4');
-                
-                stat1.innerText = 'ปกติ (60Hz)';
-                stat1.style.color = 'rgba(255,255,255,0.6)';
-                stat2.innerText = '14.2ms';
-                stat2.style.color = 'rgba(255,255,255,0.6)';
-                
-                icon.style.fill = "none";
-                document.documentElement.style.setProperty('touch-action', 'auto');
+                aimText.style.color = "#fff";
+                aimText.style.textShadow = "none";
+                statusMsg.innerText = "System Status: Idle";
+                statusMsg.style.color = "#666";
+                label.classList.add('opacity-0', 'translate-y-4');
+                icon.setAttribute('stroke', '#666');
+                icon.setAttribute('fill', 'none');
+                resp.innerText = "12.4ms";
+                resp.style.color = "#ffcc00";
+                hz.innerText = "60Hz";
+                scan.style.display = "none";
             }
         }
 
-        // Low-latency Touch Logic
+        function optimizeTouch() {
+            // ใช้ requestAnimationFrame เพื่อบังคับให้ UI thread ทำงานในรอบความถี่สูงสุด
+            if (isActive) {
+                window.requestAnimationFrame(optimizeTouch);
+            }
+        }
+
+        // ป้องกัน Gesture พื้นฐานที่ทำให้เกิด Lag
         document.addEventListener('touchstart', (e) => {
             if (isActive) {
-                // บังคับการประมวลผลทันทีผ่าน JavaScript loop สั้นๆ
-                // เพื่อลด Input Latency ในระบบ browser
+                // โค้ดส่วนนี้จะถูกเรียกใช้ทันทีเมื่อมีการสัมผัสโดยไม่มีการรอ
             }
         }, { passive: true });
 
-        // Disable long-press menus to keep responsiveness
+        // เริ่มต้นการทำงาน
+        window.onload = fetchDeviceInfo;
+
+        // ปิดเมนูคลิกขวาเพื่อความลื่นไหล
         window.oncontextmenu = (e) => {
             e.preventDefault();
             return false;
@@ -271,4 +308,3 @@
 </body>
 </html>
 
-  

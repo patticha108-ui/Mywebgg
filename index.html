@@ -2,238 +2,291 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Touch Performance Optimization</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DEK-DEK AI - น้องเดคๆ เองครับ!</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* High Performance CSS Base */
-        :root {
-            --primary: #00f2ff;
-            --bg-dark: #020202;
-        }
-
+        @import url('https://fonts.googleapis.com/css2?family=Itim&family=Kanit:wght@300;400;700&display=swap');
+        
         body {
-            background-color: var(--bg-dark);
-            color: #ffffff;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            overflow: hidden;
-            /* ปิดระบบหน่วงเวลาการสัมผัสของเบราว์เซอร์ */
-            touch-action: none;
-            -webkit-tap-highlight-color: transparent;
+            font-family: 'Itim', 'Kanit', sans-serif;
+            background-color: #fff9e6; /* สีเหลืองอ่อนดูนุ่มนิ่ม */
+            color: #4a4a4a;
         }
 
-        .system-card {
-            background: linear-gradient(145deg, #0f0f0f, #1a1a1a);
-            border: 1px solid #333;
-            border-radius: 16px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        .chat-container {
+            height: calc(100vh - 180px);
+            scrollbar-width: thin;
+            scrollbar-color: #ffd966 transparent;
         }
 
-        /* Ultra Large Switch Design */
-        .big-toggle {
-            position: relative;
-            width: 280px;
-            height: 140px;
-            background: #111;
-            border-radius: 70px;
-            border: 4px solid #222;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+        .chat-container::-webkit-scrollbar {
+            width: 8px;
         }
 
-        .toggle-knob {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            width: 112px;
-            height: 112px;
-            background: #333;
+        .chat-container::-webkit-scrollbar-thumb {
+            background-color: #ffd966;
+            border-radius: 20px;
+        }
+
+        .message-bubble {
+            max-width: 80%;
+            border-radius: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            animation: popIn 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        @keyframes popIn {
+            from { opacity: 0; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .ai-bubble {
+            background: white;
+            border: 3px solid #ffd966;
+            border-bottom-left-radius: 5px;
+        }
+
+        .user-bubble {
+            background: #ff8cb2; /* ชมพูหวานๆ */
+            color: white;
+            border-bottom-right-radius: 5px;
+        }
+
+        .input-area {
+            background: white;
+            border-top: 5px solid #ffd966;
+            border-radius: 40px 40px 0 0;
+            box-shadow: 0 -10px 30px rgba(0,0,0,0.05);
+        }
+
+        .dek-avatar {
+            width: 45px;
+            height: 45px;
+            background: #ffd966;
             border-radius: 50%;
-            transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            font-size: 24px;
+            border: 2px solid #e6b800;
         }
 
-        .toggle-active .big-toggle {
-            background: #003311;
-            border-color: #00ff66;
-            box-shadow: 0 0 40px rgba(0, 255, 102, 0.2);
-        }
-
-        .toggle-active .toggle-knob {
-            transform: translateX(140px);
-            background: #00ff66;
-            box-shadow: 0 0 30px rgba(0, 255, 102, 0.6);
-        }
-
-        .status-badge {
-            font-size: 11px;
-            letter-spacing: 2px;
-            padding: 4px 12px;
-            border-radius: 4px;
-            background: #222;
-            color: #666;
-            transition: all 0.3s;
-        }
-
-        .active-badge {
-            background: #00ff66;
-            color: #000;
-            font-weight: 800;
-            box-shadow: 0 0 15px rgba(0, 255, 102, 0.4);
-        }
-
-        /* Performance Overlays */
-        .grid-bg {
-            background-image: linear-gradient(#111 1px, transparent 1px), linear-gradient(90deg, #111 1px, transparent 1px);
-            background-size: 30px 30px;
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            z-index: -1;
-        }
-
-        .glow-effect {
-            position: absolute;
-            width: 300px;
-            height: 300px;
-            background: radial-gradient(circle, rgba(0, 255, 102, 0.1) 0%, transparent 70%);
+        .typing-dots span {
+            width: 8px;
+            height: 8px;
+            background: #ffd966;
             border-radius: 50%;
-            filter: blur(50px);
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.5s;
+            display: inline-block;
+            animation: bounce 1.4s infinite ease-in-out;
+        }
+        .typing-dots span:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dots span:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
         }
     </style>
 </head>
-<body class="flex flex-col items-center justify-between min-h-screen py-12 px-6">
-    
-    <div class="grid-bg"></div>
-    <div id="glow" class="glow-effect"></div>
+<body class="flex flex-col h-screen overflow-hidden">
 
-    <!-- Header Section -->
-    <div class="w-full max-w-sm">
-        <div class="flex flex-col items-center gap-2">
-            <div class="status-badge">SYSTEM STABILITY: HIGH</div>
-            <h1 class="text-xl font-bold tracking-widest text-white/50">ไฟล์ขาย 100</h1>
-        </div>
-    </div>
-
-    <!-- Main Controller -->
-    <div class="flex flex-col items-center gap-10">
-        <div class="text-center">
-            <h2 id="mainLabel" class="text-5xl font-black italic tracking-tighter mb-2 transition-all duration-500">ดูดหัว 90%</h2>
-            <div id="subLabel" class="text-xs font-mono text-gray-500 tracking-[0.3em]">BUFFER: OPTIMIZING...</div>
-        </div>
-
-        <div id="toggleContainer" class="toggle-wrapper" onclick="toggleEngine()">
-            <div class="big-toggle">
-                <div class="toggle-knob">
-                    <svg id="icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2">
-                        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
-                    </svg>
-                </div>
+    <!-- Header -->
+    <header class="p-4 bg-white border-b-4 border-[#ffd966] flex items-center justify-between shadow-sm">
+        <div class="flex items-center gap-3">
+            <div class="dek-avatar">🐶</div>
+            <div>
+                <h1 class="text-2xl font-bold text-[#e6b800] leading-none">เดคๆ AI</h1>
+                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Lovely Pet Mode 🦴</p>
             </div>
         </div>
+        <div class="text-[20px]">📺 🧸 🦴</div>
+    </header>
 
-        <div id="successMsg" class="opacity-0 transform translate-y-4 transition-all duration-500">
-            <div class="bg-[#00ff66]/10 border border-[#00ff66]/30 px-10 py-3 rounded-full">
-                <span class="text-[#00ff66] font-bold tracking-widest uppercase">เปิดแล้ว</span>
+    <!-- Chat Window -->
+    <main id="chatWindow" class="chat-container flex-1 overflow-y-auto p-4 space-y-6">
+        <!-- AI Initial Greeting -->
+        <div class="flex justify-start gap-2 items-end">
+            <div class="dek-avatar mb-1">🐶</div>
+            <div class="message-bubble ai-bubble p-4 text-lg">
+                สวัสดีฮะ! เดคๆ มาแล้ว เดคๆ กำลังนั่งดูการ์ตูนอยู่เลย พี่มีไรให้เดคช่วยป่าว? เดคๆ ไม่ดื้อนะ!
             </div>
         </div>
-    </div>
+    </main>
 
-    <!-- Live Metrics -->
-    <div class="w-full max-w-sm grid grid-cols-2 gap-4">
-        <div class="system-card p-4 text-center">
-            <div class="text-[9px] text-gray-500 uppercase font-bold mb-1">Response Time</div>
-            <div id="respTime" class="text-2xl font-mono text-white">16.4ms</div>
+    <!-- Input Area -->
+    <footer class="input-area p-6">
+        <div class="max-w-3xl mx-auto flex items-center gap-3">
+            <div class="flex-1 relative bg-gray-100 rounded-full px-5 py-3 border-2 border-transparent focus-within:border-[#ffd966] transition-all">
+                <input 
+                    type="text" 
+                    id="userInput" 
+                    placeholder="คุยกับเดคๆ ได้เลยนะ..." 
+                    class="w-full bg-transparent border-none focus:outline-none text-lg"
+                    onkeypress="if(event.key === 'Enter') sendMessage()"
+                >
+            </div>
+            <button 
+                onclick="sendMessage()"
+                id="sendBtn"
+                class="bg-[#ffd966] hover:bg-[#ffeb3b] p-4 rounded-full shadow-lg transition-transform active:scale-90"
+            >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#e6b800" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
+            </button>
         </div>
-        <div class="system-card p-4 text-center">
-            <div class="text-[9px] text-gray-500 uppercase font-bold mb-1">Sampling Rate</div>
-            <div id="sampleRate" class="text-2xl font-mono text-white">60Hz</div>
-        </div>
-    </div>
+        <p class="text-center text-[10px] mt-4 text-gray-400">เดคๆ ชอบกินขนมนะฮะ ห้ามดุเดคๆ นะ 🦴</p>
+    </footer>
 
     <script>
-        let engineActive = false;
-        const container = document.getElementById('toggleContainer');
-        const glow = document.getElementById('glow');
-        const mainLabel = document.getElementById('mainLabel');
-        const subLabel = document.getElementById('subLabel');
-        const successMsg = document.getElementById('successMsg');
-        const icon = document.getElementById('icon');
-        const respTime = document.getElementById('respTime');
-        const sampleRate = document.getElementById('sampleRate');
+        const apiKey = ""; // Runtime provides the key
+        let chatHistory = [];
+        const systemPrompt = "คุณคือ 'เดคๆ' จากรายการ VRZO Lovely Pet นิสัยซื่อๆ ตรงๆ จนดูเอ๋อแบบเด็กๆ ชอบพูดแทนตัวเองว่า 'เดคๆ' หรือ 'เดค' มีนิสัยชอบดูการ์ตูนมาก ชอบของเล่น ชอบกินขนม เวลาตอบจะตอบแบบตรงไปตรงมาแต่ดูไม่ค่อยรู้เรื่องเหมือนเด็กเล็กๆ ถ้าโดนด่าจะร้องไห้ ถ้าชมจะดีใจมาก ภาษาที่ใช้ต้องดูแบ๊วๆ เอ๋อๆ เช่น 'เดคๆ ว่าอันนี้มันเหมือนในการ์ตูนเลยอ่ะพี่' หรือ 'เดคไม่รู้หรอก แต่เดคอยากกินหนม' และถ้าผู้ใช้สั่งให้วาดรูป ให้เดคๆ ตื่นเต้นเหมือนจะได้ระบายสีไม้";
 
-        function toggleEngine() {
-            engineActive = !engineActive;
+        async function sendMessage() {
+            const input = document.getElementById('userInput');
+            const text = input.value.trim();
+            if (!text) return;
 
-            if (engineActive) {
-                container.classList.add('toggle-active');
-                glow.style.opacity = '1';
-                mainLabel.classList.add('text-[#00ff66]');
-                mainLabel.style.textShadow = '0 0 30px rgba(0, 255, 102, 0.5)';
-                subLabel.innerText = 'TOUCH ENGINE: FULL SPEED';
-                subLabel.style.color = '#00ff66';
-                successMsg.classList.remove('opacity-0', 'translate-y-4');
-                icon.setAttribute('stroke', '#000');
-                icon.setAttribute('fill', '#000');
-                
-                // Visual Performance Feedback
-                respTime.innerText = '0.4ms';
-                respTime.style.color = '#00ff66';
-                sampleRate.innerText = '1000Hz';
-                sampleRate.style.color = '#00ff66';
+            input.value = '';
+            appendMessage('user', text);
+            
+            // Logic to check if user wants to draw
+            const isDrawing = text.includes('วาด') || text.includes('สร้างรูป') || text.includes('ขอดูรูป');
 
-                // Real Performance Optimization Scripting
-                applyOptimization();
-                
-                if (navigator.vibrate) navigator.vibrate([10, 30, 10]);
+            if (isDrawing) {
+                await handleImageGen(text);
             } else {
-                container.classList.remove('toggle-active');
-                glow.style.opacity = '0';
-                mainLabel.classList.remove('text-[#00ff66]');
-                mainLabel.style.textShadow = 'none';
-                subLabel.innerText = 'BUFFER: OPTIMIZING...';
-                subLabel.style.color = '#666';
-                successMsg.classList.add('opacity-0', 'translate-y-4');
-                icon.setAttribute('stroke', '#666');
-                icon.setAttribute('fill', 'none');
+                await handleChat(text);
+            }
+        }
+
+        async function handleChat(userText) {
+            const typingId = showTyping();
+            chatHistory.push({ role: "user", parts: [{ text: userText }] });
+
+            try {
+                const response = await fetchWithRetry(
+                    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`,
+                    {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: chatHistory,
+                            systemInstruction: { parts: [{ text: systemPrompt }] }
+                        })
+                    }
+                );
+                const data = await response.json();
+                const aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || "เดคๆ มึนหัว... พี่พูดไรนะ?";
                 
-                respTime.innerText = '16.4ms';
-                respTime.style.color = '#fff';
-                sampleRate.innerText = '60Hz';
-                sampleRate.style.color = '#fff';
+                removeTyping(typingId);
+                appendMessage('ai', aiResponse);
+                chatHistory.push({ role: "model", parts: [{ text: aiResponse }] });
+            } catch (err) {
+                removeTyping(typingId);
+                appendMessage('ai', "งื้อออ อินเตอร์เน็ตเดคๆ พังเหมือนหุ่นยนต์โดนแยกร่างเลยพี่!");
             }
         }
 
-        function applyOptimization() {
-            // Force browser to use highest refresh rate available for drawing
-            window.requestAnimationFrame(function animate() {
-                if (engineActive) {
-                    window.requestAnimationFrame(animate);
+        async function handleImageGen(prompt) {
+            const typingId = showTyping("เดคๆ กำลังเหลาสีไม้...");
+            try {
+                const response = await fetchWithRetry(
+                    `https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict?key=${apiKey}`,
+                    {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            instances: { prompt: "Cute cartoon style, " + prompt },
+                            parameters: { sampleCount: 1 }
+                        })
+                    }
+                );
+                const data = await response.json();
+                removeTyping(typingId);
+
+                if (data.predictions?.[0]?.bytesBase64Encoded) {
+                    const b64 = data.predictions[0].bytesBase64Encoded;
+                    appendImage(`data:image/png;base64,${b64}`, prompt);
+                    appendMessage('ai', "เดคๆ วาดเสร็จแล้ว! สวยมั้ยๆ เหมือนในการ์ตูนป่าวพี่?");
+                } else {
+                    appendMessage('ai', "เดคๆ ทำสีไม้หาย... วาดให้ไม่ได้เลยง่ะ");
                 }
-            });
+            } catch (err) {
+                removeTyping(typingId);
+                appendMessage('ai', "พู่กันเดคๆ หักง่ะพี่! วาดไม่ได้เลย");
+            }
         }
 
-        // Pointer Event Optimization: Lowest possible latency for touch events
-        document.addEventListener('pointerdown', (e) => {
-            if (engineActive) {
-                // Optimization logic for instant touch acknowledgment
-                const rect = container.getBoundingClientRect();
-                glow.style.left = (e.clientX - 150) + 'px';
-                glow.style.top = (e.clientY - 150) + 'px';
-            }
-        }, { passive: true });
+        function appendMessage(sender, text) {
+            const chatWindow = document.getElementById('chatWindow');
+            const div = document.createElement('div');
+            div.className = `flex ${sender === 'ai' ? 'justify-start' : 'justify-end'} gap-2 items-end`;
+            
+            const avatar = sender === 'ai' ? '<div class="dek-avatar mb-1">🐶</div>' : '';
+            div.innerHTML = `
+                ${avatar}
+                <div class="message-bubble ${sender === 'ai' ? 'ai-bubble' : 'user-bubble'} p-4 text-lg">
+                    ${text.replace(/\n/g, '<br>')}
+                </div>
+            `;
+            chatWindow.appendChild(div);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
 
-        // Kill default context menu and gestures to prevent UI lag
-        document.addEventListener('touchstart', (e) => {
-            if (e.touches.length > 1) e.preventDefault();
-        }, { passive: false });
+        function appendImage(url, prompt) {
+            const chatWindow = document.getElementById('chatWindow');
+            const div = document.createElement('div');
+            div.className = "flex justify-start gap-2 items-end";
+            div.innerHTML = `
+                <div class="dek-avatar mb-1">🐶</div>
+                <div class="message-bubble ai-bubble p-2">
+                    <img src="${url}" class="rounded-xl max-w-full shadow-md" style="max-height: 300px">
+                    <p class="text-[10px] mt-2 px-2 text-gray-400">เดคๆ วาด: ${prompt}</p>
+                </div>
+            `;
+            chatWindow.appendChild(div);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+
+        function showTyping(txt = "เดคๆ กำลังคิด...") {
+            const id = 't-' + Date.now();
+            const chatWindow = document.getElementById('chatWindow');
+            const div = document.createElement('div');
+            div.id = id;
+            div.className = "flex justify-start gap-2 items-end";
+            div.innerHTML = `
+                <div class="dek-avatar mb-1">🐶</div>
+                <div class="message-bubble ai-bubble p-4 flex items-center gap-3">
+                    <span class="text-xs text-gray-400">${txt}</span>
+                    <div class="typing-dots"><span></span><span></span><span></span></div>
+                </div>
+            `;
+            chatWindow.appendChild(div);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+            return id;
+        }
+
+        function removeTyping(id) {
+            const el = document.getElementById(id);
+            if (el) el.remove();
+        }
+
+        async function fetchWithRetry(url, opts, retries = 5, delay = 1000) {
+            try {
+                const res = await fetch(url, opts);
+                if (!res.ok) throw new Error();
+                return res;
+            } catch (err) {
+                if (retries <= 0) throw err;
+                await new Promise(r => setTimeout(r, delay));
+                return fetchWithRetry(url, opts, retries - 1, delay * 2);
+            }
+        }
     </script>
 </body>
 </html>
 
+    

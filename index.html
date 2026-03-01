@@ -1,241 +1,235 @@
-<!DOCTYPE html>
-<html lang="th">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Touch Speed Optimizer VIP</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Kanit:wght@300;500&display=swap');
+import React, { useState, useEffect, useCallback } from 'react';
+import { initializeApp } from 'firebase/app';
+import { 
+  getAuth, 
+  signInAnonymously, 
+  signInWithCustomToken,
+  onAuthStateChanged 
+} from 'firebase/auth';
+import { 
+  getFirestore, 
+  doc, 
+  setDoc, 
+  getDoc
+} from 'firebase/firestore';
 
-        :root {
-            --neon-blue: #00f3ff;
-            --neon-purple: #bc13fe;
-            --dark-bg: #0a0a0c;
+// --- Configuration ---
+const firebaseConfig = JSON.parse(__firebase_config);
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'boss-hunter-v6-scaling';
+
+const ADJECTIVES = ["Swift", "Mighty", "Shadow", "Elite", "Legendary", "Iron", "Silent", "Crimson", "Fatal", "Ancient"];
+const TITLES = ["Hunter", "Slayer", "Warrior", "Seeker", "Ghost", "Stalker", "Paladin", "Ranger", "Berserker", "Vanguard"];
+
+const RARITIES = {
+  common: { label: 'ทั่วไป', color: 'text-slate-400', border: 'border-slate-500', bg: 'bg-slate-500/10' },
+  rare: { label: 'หายาก', color: 'text-blue-400', border: 'border-blue-500', bg: 'bg-blue-500/10' },
+  epic: { label: 'อีปิค', color: 'text-purple-400', border: 'border-purple-500', bg: 'bg-purple-500/10' },
+  legendary: { label: 'ตำนาน', color: 'text-yellow-400', border: 'border-yellow-500', bg: 'bg-yellow-500/10' }
+};
+
+const INITIAL_PLAYER = {
+  hp: 100, maxHp: 100, gold: 0, level: 1, atk: 15, def: 0,
+  hpUpgradeCount: 0, // ติดตามจำนวนครั้งที่อัปเกรด
+  equippedWeapon: null, equippedArmor: null, inventory: []
+};
+
+const INITIAL_BOSS = {
+  hp: 100, maxHp: 100, level: 1, name: 'ออร์คทมิฬ', sprite: '👹'
+};
+
+export default function App() {
+  const [user, setUser] = useState(null);
+  const [nickname, setNickname] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+  
+  const [activeTab, setActiveTab] = useState('battle');
+  const [player, setPlayer] = useState(INITIAL_PLAYER);
+  const [boss, setBoss] = useState(INITIAL_BOSS);
+  const [logs, setLogs] = useState([]);
+  const [lootModal, setLootModal] = useState(null);
+  const [isGameOver, setIsGameOver] = useState(false);
+
+  // คำนวณราคาอัปเกรด HP (100 + (จำนวนครั้ง * 100))
+  const currentHpUpgradeCost = 100 + (player.hpUpgradeCount * 100);
+
+  // --- Auth & Data Fetching ---
+  useEffect(() => {
+    const initAuth = async () => {
+      try {
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+          await signInWithCustomToken(auth, __initial_auth_token);
+        } else {
+          await signInAnonymously(auth);
         }
+      } catch (err) { console.error("Auth Error", err); }
+    };
+    initAuth();
 
-        body {
-            background-color: var(--dark-bg);
-            color: white;
-            font-family: 'Kanit', sans-serif;
-            overflow: hidden;
-            touch-action: none; /* ป้องกันการเลื่อนหน้าจอเพื่อลด Latency */
+    const unsubscribe = onAuthStateChanged(auth, async (u) => {
+      if (u) {
+        setUser(u);
+        const userDocRef = doc(db, 'artifacts', appId, 'users', u.uid, 'profile', 'data');
+        const docSnap = await getDoc(userDocRef);
+
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          setNickname(data.nickname);
+          setPlayer(data.player || INITIAL_PLAYER);
+          setBoss(data.boss || INITIAL_BOSS);
+        } else {
+          const randomName = `${ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)]} ${TITLES[Math.floor(Math.random() * TITLES.length)]}`;
+          setNickname(randomName);
+          await setDoc(userDocRef, { nickname: randomName, player: INITIAL_PLAYER, boss: INITIAL_BOSS, createdAt: Date.now() });
         }
+        setLoading(false);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
-        .orbitron { font-family: 'Orbitron', sans-serif; }
+  const performSave = async (p, b) => {
+    if (!user) return;
+    setSyncing(true);
+    try {
+      const userDocRef = doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'data');
+      await setDoc(userDocRef, {
+        nickname,
+        player: p || player,
+        boss: b || boss,
+        lastUpdated: Date.now()
+      }, { merge: true });
+    } catch (err) { console.error("Save Failed:", err); }
+    finally { setTimeout(() => setSyncing(false), 500); }
+  };
 
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
-        }
+  const addLog = (msg, color = 'text-white') => {
+    setLogs(prev => [{ id: Date.now(), msg, color }, ...prev].slice(0, 3));
+  };
 
-        .neon-text {
-            text-shadow: 0 0 10px var(--neon-blue), 0 0 20px var(--neon-blue);
-        }
+  const onAttack = () => {
+    if (player.hp <= 0 || isGameOver || loading) return;
+    const pAtk = player.atk + (player.equippedWeapon?.val || 0);
+    const dmg = Math.floor(pAtk * (0.9 + Math.random() * 0.2));
+    const newBossHp = Math.max(0, boss.hp - dmg);
 
-        .vip-badge {
-            background: linear-gradient(45deg, #ffd700, #ff8c00);
-            box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
-        }
+    if (newBossHp <= 0) {
+      const goldGained = boss.level * 50;
+      const nextLv = boss.level + 1;
+      const nextB = {
+        level: nextLv,
+        maxHp: Math.floor(100 * Math.pow(1.35, nextLv - 1)),
+        hp: Math.floor(100 * Math.pow(1.35, nextLv - 1)),
+        name: `มอนสเตอร์ LV.${nextLv}`,
+        sprite: ['👹', '🐲', '🗿', '🐙', '💀', '🕷️'][Math.floor(Math.random() * 6)]
+      };
+      const newP = { ...player, gold: player.gold + goldGained, hp: player.maxHp };
+      setPlayer(newP);
+      setBoss(nextB);
+      performSave(newP, nextB);
+      addLog(`ชนะ! ได้ทอง ${goldGained}`, 'text-green-400');
+    } else {
+      setBoss(prev => ({ ...prev, hp: newBossHp }));
+      if (Math.random() < 0.3) {
+        const finalDmg = Math.max(1, (boss.level * 8) - (player.def + (player.equippedArmor?.val || 0)));
+        const newHp = Math.max(0, player.hp - finalDmg);
+        setPlayer(prev => ({ ...prev, hp: newHp }));
+        if (newHp <= 0) setIsGameOver(true);
+        addLog(`โดนโจมตี! -${finalDmg}`, 'text-red-400');
+      }
+    }
+  };
 
-        /* Switch Styling */
-        .switch {
-            position: relative;
-            display: inline-block;
-            width: 60px;
-            height: 34px;
-        }
+  const buyHpUpgrade = () => {
+    if (player.gold >= currentHpUpgradeCost) {
+      const newP = { 
+        ...player, 
+        gold: player.gold - currentHpUpgradeCost, 
+        maxHp: player.maxHp + 200, 
+        hp: player.hp + 200,
+        hpUpgradeCount: player.hpUpgradeCount + 1 
+      };
+      setPlayer(newP);
+      performSave(newP, null);
+      addLog("อัปเกรด HP สำเร็จ!", "text-blue-400");
+    }
+  };
 
-        .switch input { opacity: 0; width: 0; height: 0; }
+  const rollGacha = () => {
+    if (player.gold >= 150) {
+      const r = Math.random() * 100;
+      let rarity = r < 5 ? 'legendary' : r < 15 ? 'epic' : r < 35 ? 'rare' : 'common';
+      const basePower = (rarity === 'common' ? 10 : rarity === 'rare' ? 40 : rarity === 'epic' ? 100 : 350);
+      const power = basePower + (boss.level * 8);
+      const weapon = { id: Date.now(), type: 'weapon', name: `ดาบสุ่ม ${RARITIES[rarity].label}`, val: power, rarity };
+      
+      const newP = { ...player, gold: player.gold - 150 };
+      setPlayer(newP);
+      setLootModal(weapon);
+      addLog("สุ่มดาบสำเร็จ!", "text-yellow-400");
+    }
+  };
 
-        .slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background-color: #333;
-            transition: .4s;
-            border-radius: 34px;
-        }
+  const buyWeapon = () => {
+    const cost = boss.level * 100;
+    if (player.gold >= cost) {
+      const weapon = { id: Date.now(), type: 'weapon', name: `ดาบมาตรฐาน LV.${boss.level}`, val: boss.level * 20, rarity: 'common' };
+      const newP = { ...player, gold: player.gold - cost, inventory: [...player.inventory, weapon].slice(0, 12) };
+      setPlayer(newP);
+      performSave(newP, null);
+      addLog("ซื้อดาบสำเร็จ!", "text-blue-400");
+    }
+  };
 
-        .slider:before {
-            position: absolute;
-            content: "";
-            height: 26px; width: 26px;
-            left: 4px; bottom: 4px;
-            background-color: white;
-            transition: .4s;
-            border-radius: 50%;
-        }
-
-        input:checked + .slider { background-color: var(--neon-blue); }
-        input:checked + .slider:before { transform: translateX(26px); }
-
-        /* Animation for scanning */
-        @keyframes scan {
-            0% { transform: translateY(-100%); }
-            100% { transform: translateY(100vh); }
-        }
-
-        .scan-line {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 2px;
-            background: var(--neon-blue);
-            opacity: 0.3;
-            box-shadow: 0 0 10px var(--neon-blue);
-            animation: scan 3s linear infinite;
-            pointer-events: none;
-        }
-
-        /* Pulse for high sensitivity */
-        .touch-circle {
-            position: absolute;
-            width: 50px; height: 50px;
-            border: 2px solid var(--neon-blue);
-            border-radius: 50%;
-            pointer-events: none;
-            transform: translate(-50%, -50%);
-            animation: ripple 0.6s ease-out forwards;
-        }
-
-        @keyframes ripple {
-            0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; }
-            100% { transform: translate(-50%, -50%) scale(2.5); opacity: 0; }
-        }
-    </style>
-</head>
-<body class="h-screen flex flex-col items-center justify-center p-4">
-
-    <div class="scan-line"></div>
-
-    <!-- Header Section -->
-    <div class="mb-8 text-center">
-        <div class="vip-badge text-black font-bold px-4 py-1 rounded-full text-sm orbitron mb-2 inline-block">
-            VIP STATUS: ACTIVE
-        </div>
-        <h1 class="text-4xl font-bold orbitron neon-text italic">ULTRA TOUCH V2</h1>
-        <p class="text-gray-400 text-xs mt-2 uppercase tracking-widest">Maximum Response Rate System</p>
+  if (loading) return (
+    <div className="fixed inset-0 bg-slate-950 flex flex-col items-center justify-center text-white">
+      <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+      <p className="text-[10px] font-black tracking-widest uppercase italic">Loading Profile...</p>
     </div>
+  );
 
-    <!-- Main Control Panel -->
-    <div class="w-full max-w-sm glass-panel rounded-3xl p-6 space-y-6">
-        
-        <!-- Main Switch -->
-        <div class="flex flex-col items-center justify-center p-6 border border-blue-500/30 rounded-2xl bg-blue-500/10">
-            <span class="orbitron text-xl font-bold text-blue-400 mb-4">aimbot80%V.2</span>
-            <label class="switch">
-                <input type="checkbox" id="mainSwitch" onchange="toggleSystem(this)">
-                <span class="slider"></span>
-            </label>
-            <div id="statusText" class="mt-4 text-xs text-gray-400">STATUS: READY</div>
+  return (
+    <div className="fixed inset-0 bg-slate-950 text-white flex flex-col font-sans overflow-hidden">
+      {/* Header HUD */}
+      <div className="p-4 bg-slate-900 border-b border-slate-800 flex justify-between items-center h-20 shrink-0 z-40 shadow-xl">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-800 rounded-lg flex items-center justify-center text-xl shadow-lg font-black border border-blue-400/20">
+            {nickname[0]}
+          </div>
+          <div>
+            <div className="text-[10px] text-slate-400 font-black uppercase flex items-center gap-2">
+              {nickname}
+              <div className={`w-2 h-2 rounded-full ${syncing ? 'bg-green-400 animate-pulse shadow-[0_0_8px_#4ade80]' : 'bg-slate-700'}`} />
+            </div>
+            <div className="text-lg font-black text-blue-400 font-mono italic leading-none">LV.{boss.level}</div>
+          </div>
         </div>
-
-        <!-- Protection Switches -->
-        <div class="grid grid-cols-2 gap-4">
-            <div class="flex flex-col items-center p-4 glass-panel rounded-xl">
-                <span class="text-xs mb-2 text-green-400 font-bold">กันแบน (Anti-Ban)</span>
-                <label class="switch scale-75">
-                    <input type="checkbox">
-                    <span class="slider"></span>
-                </label>
-            </div>
-            <div class="flex flex-col items-center p-4 glass-panel rounded-xl">
-                <span class="text-xs mb-2 text-red-400 font-bold">กันดำ (Anti-Blacklist)</span>
-                <label class="switch scale-75">
-                    <input type="checkbox">
-                    <span class="slider"></span>
-                </label>
-            </div>
+        <div className="text-right">
+          <div className="text-[9px] text-yellow-500 font-black uppercase mb-1 tracking-tighter">Treasury</div>
+          <div className="text-xl font-mono font-black text-yellow-400 leading-none">{player.gold.toLocaleString()}</div>
         </div>
+      </div>
 
-        <!-- Latency Meter -->
-        <div class="space-y-2">
-            <div class="flex justify-between text-[10px] orbitron">
-                <span>INPUT LATENCY</span>
-                <span id="latencyVal" class="text-blue-400">0.00ms</span>
-            </div>
-            <div class="w-full bg-gray-800 h-1.5 rounded-full overflow-hidden">
-                <div id="latencyBar" class="bg-blue-500 h-full w-[2%] transition-all duration-75"></div>
-            </div>
-        </div>
-
-    </div>
-
-    <!-- Info Footer -->
-    <div class="mt-8 text-center text-[10px] text-gray-500 orbitron tracking-tighter">
-        ENGINE: NITRO-GEN v3.5 | ENCRYPTION: 256-BIT AES<br>
-        BYPASSING SYSTEM LIMITATIONS... SUCCESS
-    </div>
-
-    <div id="touchContainer"></div>
-
-    <script>
-        const body = document.body;
-        const latencyVal = document.getElementById('latencyVal');
-        const latencyBar = document.getElementById('latencyBar');
-        const statusText = document.getElementById('statusText');
-        let isSystemActive = false;
-
-        function toggleSystem(el) {
-            isSystemActive = el.checked;
-            if (isSystemActive) {
-                statusText.innerText = "STATUS: SYSTEM OVERCLOCKED";
-                statusText.classList.add("text-blue-400", "neon-text");
-                if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
-            } else {
-                statusText.innerText = "STATUS: READY";
-                statusText.classList.remove("text-blue-400", "neon-text");
-                if (navigator.vibrate) navigator.vibrate(50);
-            }
-        }
-
-        // Optimized Touch Handling
-        const handleInteraction = (e) => {
-            const startTime = performance.now();
-            
-            // Create visual feedback
-            const touch = e.touches ? e.touches[0] : e;
-            createRipple(touch.clientX, touch.clientY);
-
-            // Simulation of fast processing
-            if (isSystemActive) {
-                // Boost feeling by vibrating on every touch
-                if (navigator.vibrate) navigator.vibrate(10);
-                
-                // Update Mock Latency to look fast
-                const mockLatency = (Math.random() * (0.05 - 0.01) + 0.01).toFixed(2);
-                latencyVal.innerText = `${mockLatency}ms`;
-                latencyBar.style.width = `1%`;
-            } else {
-                const mockLatency = (Math.random() * (12.5 - 5.0) + 5.0).toFixed(2);
-                latencyVal.innerText = `${mockLatency}ms`;
-                latencyBar.style.width = `25%`;
-            }
-        };
-
-        function createRipple(x, y) {
-            const circle = document.createElement('div');
-            circle.className = 'touch-circle';
-            circle.style.left = `${x}px`;
-            circle.style.top = `${y}px`;
-            document.body.appendChild(circle);
-            
-            setTimeout(() => {
-                circle.remove();
-            }, 600);
-        }
-
-        // High priority event listeners
-        window.addEventListener('touchstart', handleInteraction, { passive: false });
-        window.addEventListener('mousedown', handleInteraction);
-
-        // Prevent default gestures that slow down response
-        window.addEventListener('touchmove', (e) => {
-            if (isSystemActive) e.preventDefault();
-        }, { passive: false });
-
-    </script>
-</body>
-</html>
-
+      <div className="flex-grow relative flex flex-col overflow-hidden">
+        {activeTab === 'battle' && (
+          <div className="h-full flex flex-col items-center justify-between py-8 px-6">
+            <div className="w-full max-w-sm space-y-4">
+              <div className="bg-slate-900/80 p-3 rounded-2xl border border-red-500/20 shadow-inner">
+                <div className="flex justify-between text-[10px] font-black uppercase text-red-500 mb-1">
+                  <span>Boss HP</span>
+                  <span>{Math.floor(boss.hp)} / {boss.maxHp}</span>
+                </div>
+                <div className="w-full h-2 bg-black rounded-full overflow-hidden">
+                  <div className="h-full bg-gradient-to-r from-red-600 to-orange-500 transition-all duration-300" style={{ width: `${(boss.hp / boss.maxHp) * 100}%` }} />
+                </div>
+              </div>
+              <div className="bg-slate-900/80 p-3 rounded-2xl border border-green-500/20 shadow-inner">
+                <div className="flex justify-between text-[10px] font-black uppercase text-green-500 mb-1">
+                  <span>Hunter HP</span>
+                  <span>{player.hp} / {player.maxHp}</span>
+                </div>
+                <div className="w-full h-2 bg-black rounded-full overflow-hidden">
+                  <div className="h-full bg-gradient-to-r from-green-600 to-emerald-400 transition-all duration-300
